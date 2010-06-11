@@ -1,0 +1,308 @@
+.TH LISTADMIN 1 "24 Feb 2005"
+.\" turn off hyphenation
+.hy 0
+.\" turn on ragged right if run through nroff
+.if n .na
+.SH NAME
+listadmin \- process messages held by Mailman for approval
+.SH SYNOPSIS
+.B listadmin [-?] [-V] [-f \fIconfigfile\fP] [-t \fIminutes\fP] \
+[--mail] [--nomail] [{-a|-r} \fIfile\fP] [--add-member \fIaddress\fP] \
+[--remove-member \fIaddress\fP] [-l] [\fIlistname\fP]
+.SH DESCRIPTION
+.I listadmin
+is a textual alternative to Mailman's WWW interface for administering
+mailing lists.
+.SH OPTIONS
+.IP "-f \fIconfigfile\fP"
+Fetch list of mailing lists from \fIconfigfile\fP rather than the
+default (\fB~/.listadmin.ini\fP).
+.IP "-t \fIminutes\fP"
+Stop processing after \fIminutes\fP has passed.  Mostly useful for
+completely automated configurations of \fBlistadmin\fP.
+.IP "--mail"
+Addresses added as subscribers will have \fInomail\fP turned off.
+.IP "--nomail"
+Addresses added as subscribers will have \fInomail\fP turned on.
+.IP "-a \fIfile\fP"
+Add e-mail addresses listed in \fIfile\fP (one address per line) to
+the subscriber list.  The welcome message is suppressed.
+.IP "--add-member \fIaddress\fP"
+Add \fIaddress\fP to the subscriber list, works as above.
+.IP "-r \fIfile\fP"
+Remove e-mail addresses listed in \fIfile\fP (one address per line)
+from the subscriber list.
+.IP "--remove-member \fIaddress\fP"
+Remove \fIaddress\fP from the subscriber list.
+.IP "-l"
+Display the subscriber list.
+.IP "\fIlistname\fP"
+Only process the lists matching \fIlistname\fP.  Specify a complete
+address, a substring or a regular expression.
+.IP "-? or --help"
+Display short usage description.
+.IP "-V or --version"
+Output version number.
+.SH CONFIGURATION SYNTAX
+
+The configuration file contains lines which can contain either a
+comment, a directive, or a mailing list address.
+
+A line can be continued by putting a backslash character at the end of
+the line.  Any leading whitespace on the following line is removed.
+
+Comments begin with the character # and extend to the end of line.
+Backslash continuation is not applied to comments.
+
+The argument to the directive can be put in double quotes to protect
+space characters.  Inside double quotes, \\" can be used to include a \""
+literal double quote, and \\\\ for a literal backslash.
+
+.SH DIRECTIVES
+A directive affects all the mailing lists addresses which follow after
+it in the configuration file.  The directives are:
+.RS
+.IP "username \fIusername\fP"
+Specifies the username to use for authentication.  (Not all Mailman
+servers require a username.)
+.IP "password \fIpassword\fP"
+Specifies the password to use for authentication.
+.IP "adminurl \fIurl\fP"
+The URL for maintaining Mailman requests.  Some substitutions are
+performed: (examples below refer to the hypothetical list
+\fIfoo-devel@example.net\fP)
+.RS
+.IP "{list}"
+The local part of the list name, e.g., "foo-devel".
+.IP "{domain}"
+The domain part of the list name, e.g., "example.net".
+.IP "{subdomain}"
+The first component of the domain part, e.g., "example".
+.RE
+.IP "default \fIaction\fP"
+Specifies the action to take when the user presses just Return.
+Available actions are:
+.RS
+.IP "approve"
+The message will be sent to all member of the list.
+.IP "reject"
+Notify sender that the message was rejected.
+.IP "discard"
+Throw message away, don't notify sender.
+.IP "skip"
+Don't decide now, leave it for later.
+.IP "none"
+Reset to no default action.
+.RE
+.IP "action \fIaction\fP"
+This action will be taken for all messages where none of the other
+rules apply (e.g., \fIspamlevel\fP, \fIdiscard_if_from\fP etc.), ie.,
+whenever the user would have been asked what to do.  The same actions
+as for \fIdefault\fP are available, although reject isn't very useful.
+.IP "spamlevel \fInumber\fP"
+This specifies the threshold for automatic discard of suspected spam
+messages.  12 is unlikely to have false positives.  No user
+confirmation is needed, so it is best to play it safe.  Less than 5 is
+not recommended.
+.IP "spamheader \fIheader-name\fP"
+The name of the header which contains the spam score.  It is assumed
+that the score is encoded as a sequence of characters, like "*****"
+for the value 5.  By default it will look for all headers with names
+containing "spam" and "score" or "level", and pick the highest score
+if there is more than one. Setting the header-name to \fIdefault\fP
+will restore this behaviour.
+.IP "not_spam_if_from \fIpattern\fP"
+If the message's From header matches the pattern, all automatic
+actions will be cancelled and you will be asked what action to take
+explicitly.  The pattern can use Perl regexp syntax.  If enclosed in
+slashes, some modifiers can be added, a typical example being
+\fB/pattern/i\fP to match case-insensitively.
+.IP "not_spam_if_subject \fIpattern\fP"
+As above, but matches against the Subject header.
+.IP "discard_if_from \fIpattern\fP"
+If the message's From header matches the pattern, it will be discarded
+automatically.
+.IP "discard_if_subject \fIpattern\fP"
+As above, but matches against the Subject header.
+.IP "discard_if_reason \fIpattern\fP"
+As above, but matches against Mailman's reason for holding the message
+for approval.
+.IP "subscription_default \fIaction\fP"
+Specifies the action to take when the user presses just Return while
+processing subscriptions.  Available actions are:
+.RS
+.IP "accept"
+The new subscriber will be added.
+.IP "reject"
+Notify sender that s/he was not allowed to join the list.
+.IP "skip"
+Don't decide now, leave it for later.
+.IP "none"
+Reset to no default action.
+.RE
+.IP "subscription_action \fIaction\fP"
+This action will be taken \fBalways\fP for all new subscribers in the
+relevant lists, no user interaction will take place.  The same actions
+as for \fIsubscription_default\fP are available, although only skip is
+very useful.  It is better to get automatic accept and reject
+behaviour by changing the Mailman configuration.
+.IP "confirm \fIyes|no\fP"
+Before submitting changes, ask for confirmation.  Default is "yes".
+.IP "unprintable \fIquestionmark|unicode\fP"
+If the subject or sender address contains characters the terminal
+can't display, they will be replaced by either "<?>" (in
+\fIquestionmark\fP mode, the default) or something like "<U+86a8>" (in
+\fIunicode\fP mode).
+.IP "log \fIfilename\fP"
+Changes submitted to the web interface are logged.  All the changes
+for one list are sent in batches at the end of processing.  The format
+in the log is first a line containing the list name and a time stamp
+in local time.  Then one line for each message, in the format
+.IP
+\fIaction\fP D:[\fIdate\fP] F:[\fIsender\fP] S:[\fIsubject\fP]
+.IP
+This batch of lines is terminated by a line saying \fBchanges sent to
+server\fP.
+.IP
+The same substitutions are performed on \fIfilename\fP as on the
+argument to \fBadminurl\fP.  Tilde syntax can be used to refer to home
+directories.  The filename \fBnone\fP turns off logging.
+.IP "meta_member_support \fIyes|no\fP"
+Meta members are an experimental feature at the University of Oslo.
+This option is enabled by default for lists in uio.no, and is needed
+to avoid clearing the list of meta members when manipulating the list
+of ordinary members.  \fINote: Requires additional Perl module
+WWW::Mechanize\fP
+
+\" "dumpdir" is for developer use, so it isn't documented.
+
+.SH INTERACTIVE USE
+
+The user interface to \fBlistadmin\fP is line oriented with single
+letter commands.  By pressing Return, the default action is chosen.
+The default action is printed in brackets in the prompt.  The
+available actions are:
+
+.RS
+.IP a
+Approve sending the message to all members of the list.
+.IP r
+Reject the message and notify sender of the decision.
+.IP d
+Discard the message silently, don't notify sender.
+.IP s
+Skip the message, leave its status as pending unchanged.
+.IP b
+View Body, display the first 20 lines of the message.
+.IP f
+View Full, display the complete message, including headers.
+.IP t
+View Time, display the Date header from the message.
+.IP \fInumber\fP
+Jump forward or backward to message \fInumber\fP.
+.IP u
+Go back to the previous message and undo the last approve, discard or
+reject action.
+.IP /\fIpattern\fP
+Search (case-insensitively) for the next message with matching From or
+Subject.  If \fIpattern\fP is left out, the previous value will be
+used.
+.IP ?\fIpattern\fP
+As above, but backwards.
+.IP .
+Redisplay information about current message.
+.IP add [\fIaddress\fP]
+Add \fIaddress\fP as subscriber to the list.  If \fIaddress\fP is left
+out, use the sender of the current message.
+.IP nomail [\fIaddress\fP]
+As \fIadd\fP, but adds \fIaddress\fP with "nomail" enabled.
+.IP list [\fIpattern\fP]
+List subscriber addresses matching \fIpattern\fP, or the full list if
+no \fIpattern\fP is specified.
+.IP rem \fIaddress\fP
+Remove \fIaddress\fP from the subscriber list.  Note: there is no undo
+for this action.
+.IP q
+Quit processing this list and go on to the next.
+.RE
+
+Changes will not take effect until the end of the list has been
+reached.  At that time, the user will be prompted whether the changes
+should be submitted to Mailman (see also "confirm" directive above).
+
+.SH EXAMPLES
+To process only the lists of a single domain, specify the domain as
+the pattern:
+.nf
+.ta +3m
+	listadmin example.com
+.fi
+
+To disable the printing of characters outside US-ASCII, set the locale
+appropriately:
+.nf
+.ta +3m
+	env LC_CTYPE=C listadmin
+.fi
+
+An example configuration file:
+.nf
+.ta +3m +4n
+	# A comment, it must appear on a line by itself.
+	#
+	# Settings affect all lists being listed after it.
+
+	username jdoe@example.com
+	password Geheim
+	default discard
+	# This one works for Sourceforge:
+	adminurl http://{domain}/lists/admindb/{list}
+
+	slartibartfast@lists.sourceforge.net
+
+	# This is how the default Mailman URLs look:
+	adminurl http://{domain}/mailman/admindb/{list}
+
+	# If the password contains quotes or spaces, you may need
+	# to put it in quotes.  A complex example:
+	password "\\"lise\\\\ "\""
+
+	# These lists will still use the username [jdoe], but the
+	# password is now ["lise\\ ].\""
+
+	default approve
+	discard_if_reason "Message has implicit|Too many recipients"
+	discard_if_from ^(postmaster|mailer(-daemon)?|listproc|no-reply)@
+
+	foo-devel@example.net
+
+	# No one should ever send e-mail to the next list, so throw it
+	# all away, without asking any questions
+	action discard
+	confirm no
+	foo-announce@example.net
+.fi
+
+.SH ENVIRONMENT
+.IP "\fBhttp_proxy\fP or \fBHTTP_PROXY\fP"
+Specifies a proxy to use for HTTP.
+.IP "\fBhttps_proxy\fP or \fBHTTPS_PROXY\fP"
+Specifies a proxy to use for HTTPS.
+.IP \fBLC_CTYPE\fP
+The character set support is deduced from this variable.
+
+.SH FILES
+\fB$HOME/.listadmin.ini\fP
+.PP
+The default configuration file.
+
+.SH BUGS
+The HTML parser is quite fragile and depends on Mailman not to change
+the format of its generated code.
+.PP
+An extra blank line is sometimes added to the subject when it contains
+double width characters (e.g. Chinese).  This is probably a bug in
+Text::Reform.
+.SH AUTHOR
+Kjetil T. Homme <kjetilho+listadmin@ifi.uio.no>
+.br

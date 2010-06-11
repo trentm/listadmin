@@ -1,0 +1,337 @@
+LISTADMIN(1)                                                      LISTADMIN(1)
+
+NAME
+       listadmin - process messages held by Mailman for approval
+
+SYNOPSIS
+       listadmin [-?] [-V] [-f configfile] [-t minutes] [--mail] [--nomail]
+       [{-a|-r} file] [--add-member address] [--remove-member address] [-l]
+       [listname]
+
+DESCRIPTION
+       listadmin is a textual alternative to Mailman's WWW interface for
+       administering mailing lists.
+
+OPTIONS
+       -f configfile
+              Fetch list of mailing lists from configfile rather than the
+              default (~/.listadmin.ini).
+
+       -t minutes
+              Stop processing after minutes has passed.  Mostly useful for
+              completely automated configurations of listadmin.
+
+       --mail Addresses added as subscribers will have nomail turned off.
+
+       --nomail
+              Addresses added as subscribers will have nomail turned on.
+
+       -a file
+              Add e-mail addresses listed in file (one address per line) to
+              the subscriber list.  The welcome message is suppressed.
+
+       --add-member address
+              Add address to the subscriber list, works as above.
+
+       -r file
+              Remove e-mail addresses listed in file (one address per line)
+              from the subscriber list.
+
+       --remove-member address
+              Remove address from the subscriber list.
+
+       -l     Display the subscriber list.
+
+       listname
+              Only process the lists matching listname.  Specify a complete
+              address, a substring or a regular expression.
+
+       -? or --help
+              Display short usage description.
+
+       -V or --version
+              Output version number.
+
+CONFIGURATION SYNTAX
+       The configuration file contains lines which can contain either a
+       comment, a directive, or a mailing list address.
+
+       A line can be continued by putting a backslash character at the end of
+       the line.  Any leading whitespace on the following line is removed.
+
+       Comments begin with the character # and extend to the end of line.
+       Backslash continuation is not applied to comments.
+
+       The argument to the directive can be put in double quotes to protect
+       space characters.  Inside double quotes, \" can be used to include a
+       literal double quote, and \\ for a literal backslash.
+
+DIRECTIVES
+       A directive affects all the mailing lists addresses which follow after
+       it in the configuration file.  The directives are:
+
+              username username
+                     Specifies the username to use for authentication.  (Not
+                     all Mailman servers require a username.)
+
+              password password
+                     Specifies the password to use for authentication.
+
+              adminurl url
+                     The URL for maintaining Mailman requests.  Some
+                     substitutions are performed: (examples below refer to the
+                     hypothetical list foo-devel@example.net)
+
+                      {list} The local part of the list name, e.g., "foo-
+                             devel".
+
+                     {domain}
+                             The domain part of the list name, e.g.,
+                             "example.net".
+
+                     {subdomain}
+                             The first component of the domain part, e.g.,
+                             "example".
+
+              default action
+                     Specifies the action to take when the user presses just
+                     Return.  Available actions are:
+
+                     approve
+                             The message will be sent to all member of the
+                             list.
+
+                      reject Notify sender that the message was rejected.
+
+                     discard
+                             Throw message away, don't notify sender.
+
+                      skip   Don't decide now, leave it for later.
+
+                      none   Reset to no default action.
+
+              action action
+                     This action will be taken for all messages where none of
+                     the other rules apply (e.g., spamlevel, discard_if_from
+                     etc.), ie., whenever the user would have been asked what
+                     to do.  The same actions as for default are available,
+                     although reject isn't very useful.
+
+              spamlevel number
+                     This specifies the threshold for automatic discard of
+                     suspected spam messages.  12 is unlikely to have false
+                     positives.  No user confirmation is needed, so it is best
+                     to play it safe.  Less than 5 is not recommended.
+
+              spamheader header-name
+                     The name of the header which contains the spam score.  It
+                     is assumed that the score is encoded as a sequence of
+                     characters, like "*****" for the value 5.  By default it
+                     will look for all headers with names containing "spam"
+                     and "score" or "level", and pick the highest score if
+                     there is more than one. Setting the header-name to
+                     default will restore this behaviour.
+
+              not_spam_if_from pattern
+                     If the message's From header matches the pattern, all
+                     automatic actions will be cancelled and you will be asked
+                     what action to take explicitly.  The pattern can use Perl
+                     regexp syntax.  If enclosed in slashes, some modifiers
+                     can be added, a typical example being /pattern/i to match
+                     case-insensitively.
+
+              not_spam_if_subject pattern
+                     As above, but matches against the Subject header.
+
+              discard_if_from pattern
+                     If the message's From header matches the pattern, it will
+                     be discarded automatically.
+
+              discard_if_subject pattern
+                     As above, but matches against the Subject header.
+
+              discard_if_reason pattern
+                     As above, but matches against Mailman's reason for
+                     holding the message for approval.
+
+              subscription_default action
+                     Specifies the action to take when the user presses just
+                     Return while processing subscriptions.  Available actions
+                     are:
+
+                      accept The new subscriber will be added.
+
+                      reject Notify sender that s/he was not allowed to join
+                             the list.
+
+                      skip   Don't decide now, leave it for later.
+
+                      none   Reset to no default action.
+
+              subscription_action action
+                     This action will be taken always for all new subscribers
+                     in the relevant lists, no user interaction will take
+                     place.  The same actions as for subscription_default are
+                     available, although only skip is very useful.  It is
+                     better to get automatic accept and reject behaviour by
+                     changing the Mailman configuration.
+
+              confirm yes|no
+                     Before submitting changes, ask for confirmation.  Default
+                     is "yes".
+
+              unprintable questionmark|unicode
+                     If the subject or sender address contains characters the
+                     terminal can't display, they will be replaced by either
+                     "<?>" (in questionmark mode, the default) or something
+                     like "<U+86a8>" (in unicode mode).
+
+              log filename
+                     Changes submitted to the web interface are logged.  All
+                     the changes for one list are sent in batches at the end
+                     of processing.  The format in the log is first a line
+                     containing the list name and a time stamp in local time.
+                     Then one line for each message, in the format
+
+                     action D:[date] F:[sender] S:[subject]
+
+                     This batch of lines is terminated by a line saying
+                     changes sent to server.
+
+                     The same substitutions are performed on filename as on
+                     the argument to adminurl.  Tilde syntax can be used to
+                     refer to home directories.  The filename none turns off
+                     logging.
+
+              meta_member_support yes|no
+                     Meta members are an experimental feature at the
+                     University of Oslo.  This option is enabled by default
+                     for lists in uio.no, and is needed to avoid clearing the
+                     list of meta members when manipulating the list of
+                     ordinary members.  Note: Requires additional Perl module
+                     WWW::Mechanize
+
+INTERACTIVE USE
+       The user interface to listadmin is line oriented with single letter
+       commands.  By pressing Return, the default action is chosen.  The
+       default action is printed in brackets in the prompt.  The available
+       actions are:
+
+              a      Approve sending the message to all members of the list.
+
+              r      Reject the message and notify sender of the decision.
+
+              d      Discard the message silently, don't notify sender.
+
+              s      Skip the message, leave its status as pending unchanged.
+
+              b      View Body, display the first 20 lines of the message.
+
+              f      View Full, display the complete message, including
+                     headers.
+
+              t      View Time, display the Date header from the message.
+
+              number Jump forward or backward to message number.
+
+              u      Go back to the previous message and undo the last
+                     approve, discard or reject action.
+
+              /pattern
+                     Search (case-insensitively) for the next message with
+                     matching From or Subject.  If pattern is left out, the
+                     previous value will be used.
+
+              ?pattern
+                     As above, but backwards.
+
+              .      Redisplay information about current message.
+
+              add    Add address as subscriber to the list.  If address is
+                     left out, use the sender of the current message.
+
+              nomail As add, but adds address with "nomail" enabled.
+
+              list   List subscriber addresses matching pattern, or the full
+                     list if no pattern is specified.
+
+              rem    Remove address from the subscriber list.  Note: there is
+                     no undo for this action.
+
+              q      Quit processing this list and go on to the next.
+
+       Changes will not take effect until the end of the list has been
+       reached.  At that time, the user will be prompted whether the changes
+       should be submitted to Mailman (see also "confirm" directive above).
+
+EXAMPLES
+       To process only the lists of a single domain, specify the domain as the
+       pattern:
+          listadmin example.com
+
+       To disable the printing of characters outside US-ASCII, set the locale
+       appropriately:
+          env LC_CTYPE=C listadmin
+
+       An example configuration file:
+          # A comment, it must appear on a line by itself.
+          #
+          # Settings affect all lists being listed after it.
+
+          username jdoe@example.com
+          password Geheim
+          default discard
+          # This one works for Sourceforge:
+          adminurl http://{domain}/lists/admindb/{list}
+
+          slartibartfast@lists.sourceforge.net
+
+          # This is how the default Mailman URLs look:
+          adminurl http://{domain}/mailman/admindb/{list}
+
+          # If the password contains quotes or spaces, you may need
+          # to put it in quotes.  A complex example:
+          password "\"lise\\ "
+
+          # These lists will still use the username [jdoe], but the
+          # password is now ["lise\ ].
+
+          default approve
+          discard_if_reason "Message has implicit|Too many recipients"
+          discard_if_from ^(postmaster|mailer(-daemon)?|listproc|no-reply)@
+
+          foo-devel@example.net
+
+          # No one should ever send e-mail to the next list, so throw it
+          # all away, without asking any questions
+          action discard
+          confirm no
+          foo-announce@example.net
+
+ENVIRONMENT
+       http_proxy or HTTP_PROXY
+              Specifies a proxy to use for HTTP.
+
+       https_proxy or HTTPS_PROXY
+              Specifies a proxy to use for HTTPS.
+
+       LC_CTYPE
+              The character set support is deduced from this variable.
+
+FILES
+       $HOME/.listadmin.ini
+
+       The default configuration file.
+
+BUGS
+       The HTML parser is quite fragile and depends on Mailman not to change
+       the format of its generated code.
+
+       An extra blank line is sometimes added to the subject when it contains
+       double width characters (e.g. Chinese).  This is probably a bug in
+       Text::Reform.
+
+AUTHOR
+       Kjetil T. Homme <kjetilho+listadmin@ifi.uio.no>
+
+                                  24 Feb 2005                     LISTADMIN(1)
