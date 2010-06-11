@@ -765,12 +765,16 @@ sub parse_pages_mm_2_1 {
     my $headline;
 
     $parse_subs->get_tag ("hr");
-    if ($parse_subs->get_tag ("h2")) {
+    if ($parse_subs->get_tag ("h2")
+	&& $parse_subs->get_token()->[1] eq "Subscription Requests"
+	) {
 	parse_subscriptions ($mmver, $config, $parse_subs, \%data);
     }
 
     $parse_appr->get_tag ("hr");
-    if ($parse_appr->get_tag ("h2")) {
+    if ($parse_appr->get_tag ("h2")
+	&& $parse_appr->get_token()->[1] =~ /^Posting/
+	) {
 	parse_approvals ($mmver, $config, $parse_appr, \%data);
     }
     return (\%data);
@@ -813,6 +817,8 @@ sub parse_approvals {
 	$parse->get_tag ("/table");
 	$parse->get_tag ("hr");
 	$token = $parse->get_token;
+	$token = $parse->get_token
+		if ($token->[0] eq "S" && lc ($token->[1]) eq "span");
 	$token = $parse->get_token
 		if ($token->[0] eq "S" && lc ($token->[1]) eq "center");
     } until ($token->[0] eq "S" && lc ($token->[1]) eq "input");
